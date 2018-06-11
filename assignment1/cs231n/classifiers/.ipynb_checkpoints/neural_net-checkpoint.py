@@ -96,9 +96,8 @@ class TwoLayerNet(object):
     #############################################################################
     scores = np.exp(y_pred)
     normalization = np.sum(scores, axis=1)
-    p = scores / normalization.reshape((-1, 1))
 
-    loss = np.sum(-np.log(p[np.arange(N), y])) / N + reg * (np.sum(W1 * W1) + np.sum(W2 * W2))
+    loss = np.sum(-np.log(scores[np.arange(N), y] / normalization)) / N + reg * (np.sum(W1 * W1) + np.sum(W2 * W2))
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
@@ -110,16 +109,18 @@ class TwoLayerNet(object):
     # and biases. Store the results in the grads dictionary. For example,       #
     # grads['W1'] should store the gradient on W1, and be a matrix of same size #
     #############################################################################
-    p[np.arange(y.shape[0]), y] -= 1
-    p /= N
-    grads['W2'] = h1.T.dot(p) + 2 * reg * W2
-    grads['b2'] = np.sum(p, axis=0)
-
-    dh1 = p.dot(W2.T)
-    dh1[h1==0]  = 0
-
-    grads['W1'] = X.T.dot(dh1) + 2 * reg * W1
-    grads['b1'] = np.sum(dh1, axis=0)
+    A = scores / normalization[:, np.newaxis]
+    B = np.zeros((y_pred.shape[0], W2.shape[1]))
+    B[np.arange(y_pred.shape[0]), y] = -1
+    grad_y_pred = y_pred.dot((A + B).T) / y_pred.shape[0]
+    print("y_pred sahpe{},  A sahpe{},  B sahpe{},  grad_y_pred sahpe{}, W2 sahpe{}".format(y_pred.shape, A.shape, B.shape, grad_y_pred.shape, W2.shape))
+    grad_W2 = h1.T.dot(grad_y_pred)
+    print("grad_W2 shape:{},   W2 sahpe{}".format(grad_W2.shape, W2.shape))
+    grad_b2 = grad_y_pred
+    grad_h1 = grad_y_pred.dot(W2.T)
+    grad_a = a[a > 0] = 1
+    grad_a = grad_a[grad_a < 0] = 0
+    print("grad_a shape:{},   grad h1 sahpe{}".format(grad_a.shape, grad_h1))
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
@@ -163,9 +164,7 @@ class TwoLayerNet(object):
       # TODO: Create a random minibatch of training data and labels, storing  #
       # them in X_batch and y_batch respectively.                             #
       #########################################################################
-      ind = np.random.randint(0, num_train, batch_size)
-      X_batch = X[ind, :]
-      y_batch = y[ind]
+      pass
       #########################################################################
       #                             END OF YOUR CODE                          #
       #########################################################################
@@ -180,10 +179,7 @@ class TwoLayerNet(object):
       # using stochastic gradient descent. You'll need to use the gradients   #
       # stored in the grads dictionary defined above.                         #
       #########################################################################
-      self.params['W1'] -= learning_rate * grads['W1']
-      self.params['b1'] -= learning_rate * grads['b1']
-      self.params['W2'] -= learning_rate * grads['W2']
-      self.params['b2'] -= learning_rate * grads['b2']
+      pass
       #########################################################################
       #                             END OF YOUR CODE                          #
       #########################################################################
@@ -225,16 +221,10 @@ class TwoLayerNet(object):
     """
     y_pred = None
 
-    W1, b1 = self.params['W1'], self.params['b1']
-    W2, b2 = self.params['W2'], self.params['b2']
-
     ###########################################################################
     # TODO: Implement this function; it should be VERY simple!                #
     ###########################################################################
-    a = X.dot(W1) + b1
-    h1 = np.maximum(a, 0)
-    y_pred = h1.dot(W2) + b2
-    y_pred = np.argmax(y_pred, axis=1)
+    pass
     ###########################################################################
     #                              END OF YOUR CODE                           #
     ###########################################################################
