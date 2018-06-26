@@ -101,7 +101,7 @@ def rmsprop(w, dw, config=None):
     # in the next_w variable. Don't forget to update cache value stored in    #
     # config['cache'].                                                        #
     ###########################################################################
-    config['cache'] = config['decay_rate'] * config['cache'] + (1 - config['decay_rate']) * dw**2
+    config['cache'] = config['decay_rate'] * config['cache'] + (1 - config['decay_rate']) * dw*dw
     w -= config['learning_rate']* dw / (np.sqrt(config['cache']) + config['epsilon'])
     next_w = w
     ###########################################################################
@@ -143,10 +143,11 @@ def adam(w, dw, config=None):
     # NOTE: In order to match the reference output, please modify t _before_  #
     # using it in any calculations.                                           #
     ###########################################################################
+    config['t'] += 1
     config['m'] = config['beta1']*config['m'] + (1-config['beta1'])*dw
-    mt = config['m'] / ((1-config['beta1']**config['t']) + config['epsilon'])
-    config['v'] = config['beta2']*config['v'] + (1-config['beta2'])*(dw**2)
-    vt = config['v'] / ((1-config['beta2']**config['t']) + config['epsilon'])
+    mt = config['m'] / (1-config['beta1']**config['t']) 
+    config['v'] = config['beta2']*config['v'] + (1-config['beta2'])*(dw*dw)
+    vt = config['v'] / (1-config['beta2']**config['t'])
     w -= config['learning_rate'] * mt / (np.sqrt(vt) + config['epsilon'])
     next_w = w
     ###########################################################################
