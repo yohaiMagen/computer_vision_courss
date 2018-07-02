@@ -148,7 +148,7 @@ def adam(w, dw, config=None):
     mt = config['m'] / (1-config['beta1']**config['t']) 
     config['v'] = config['beta2']*config['v'] + (1-config['beta2'])*(dw*dw)
     vt = config['v'] / (1-config['beta2']**config['t'])
-    w -= config['learning_rate'] * mt / (np.sqrt(vt) + config['epsilon'])
+    w -= config['learning_rate'] * mt / (np.sqrt(vt+ config['epsilon']) )
     next_w = w
     ###########################################################################
     #                             END OF YOUR CODE                            #

@@ -276,14 +276,7 @@ def batchnorm_backward(dout, cache):
     # Referencing the original paper (https://arxiv.org/abs/1502.03167)       #
     # might prove to be helpful.                                              #
     ###########################################################################
-    # m = cache['x'].shape[0]
-    # dbeta = np.sum(dout, axis=0)
-    # dgamma = np.sum(dout * cache['x_hat'], axis=0)
-    # dx_hat = dout * cache['gamma']
-    # d_var = np.sum(dx_hat * (cache['x'] - cache['mean']) * -0.5 * np.power((cache['var'] + cache['eps']), -1.5), axis=0)
-    # d_mean = np.sum(dx_hat * (-1 / np.sqrt(cache['var'] + cache['eps'])), axis=0) + d_var * np.sum(-2 * (cache['x'] - cache['mean']), axis=0) / m
-    # dx = dx_hat * (1 / np.sqrt(cache['var'] + cache['eps'])) + d_var * 2 * (cache['x'] - cache['mean']) / m + d_mean / m
-    # unfold the variables stored in cache
+
     xhat, gamma, xmu, ivar, sqrtvar, var, eps, x = cache
 
     # get the dimensions of the input/output
@@ -403,9 +396,11 @@ def layernorm_forward(x, gamma, beta, ln_param):
     # transformations you could perform, that would enable you to copy over   #
     # the batch norm code and leave it almost unchanged?                      #
     ###########################################################################
-    xhat, gamma, xmu, ivar, sqrtvar, var, eps, x = cache
-
-
+    mean = np.mean(x, axis=1)
+    var = np.var(x, axis=1)
+    x_hat = (x-mean.reshape(-1,1)) / (np.sqrt(var + eps)).reshape(-1,1)
+    out = gamma * x_hat + beta
+    cache = (gamma, beta, x, x_hat, mean, var , eps)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -436,7 +431,20 @@ def layernorm_backward(dout, cache):
     # implementation of batch normalization. The hints to the forward pass    #
     # still apply!                                                            #
     ###########################################################################
-    pass
+    gamma, beta, x, x_hat, mean, var , eps = cache
+    N, D = dout.shape
+    mean = mean.reshape(-1,1)
+    var = var.reshape(-1,1)
+    
+    dbeta = np.sum(dout, axis=0)
+    dgamma = np.sum(dout * x_hat, axis=0)
+
+    dx_hat = dout * gamma
+    d_var = (x-mean) / D - 2/(D**2)*np.sum(x-mean).reshape(-1,1)
+    d_ivar = -0.5 * np.power(var + eps, -1.5) * d_var
+    d_x_mean = (1 - 1/D)
+    df = d_x_mean*np.power(var + eps, -0.5)+ d_ivar * (x -mean)
+    dx = dx_hat * df
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
