@@ -439,12 +439,18 @@ def layernorm_backward(dout, cache):
     dbeta = np.sum(dout, axis=0)
     dgamma = np.sum(dout * x_hat, axis=0)
 
+    #dx_hat = dout * gamma
+    #d_var = (x-mean) / D - 2/(D**2)*np.sum(x-mean).reshape(-1,1)
+    #d_ivar = -0.5 * np.power(var + eps, -1.5) * d_var
+    #d_x_mean = (1 - 1/D)
+    #df = d_x_mean*np.power(var + eps, -0.5)+ d_ivar * (x -mean)
+    #dx = dx_hat * df
+    xmu = x - mean
+    ivar = 1. / np.sqrt(var + eps)
     dx_hat = dout * gamma
-    d_var = (x-mean) / D - 2/(D**2)*np.sum(x-mean).reshape(-1,1)
-    d_ivar = -0.5 * np.power(var + eps, -1.5) * d_var
-    d_x_mean = (1 - 1/D)
-    df = d_x_mean*np.power(var + eps, -0.5)+ d_ivar * (x -mean)
-    dx = dx_hat * df
+    d_var = - 0.5 * np.sum(dx_hat * xmu * np.power(var + eps, -1.5).reshape(-1, 1), axis=1)
+    d_mean = (np.sum(dx_hat * ivar, axis=1) + d_var * -2 * np.sum(xmu, axis=1) / D) *-1
+    dx = dx_hat * ivar + d_var.reshape(-1, 1) * 2 * xmu / D + d_mean.reshape(-1, 1) / D
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -489,7 +495,12 @@ def dropout_forward(x, dropout_param):
         # TODO: Implement training phase forward pass for inverted dropout.   #
         # Store the dropout mask in the mask variable.                        #
         #######################################################################
-        pass
+        p = 1 - p
+        mask = np.random.rand(*x.shape)
+        mask = mask < p
+        mask = mask.astype('float')
+        mask = mask / p
+        out = x * mask
         #######################################################################
         #                           END OF YOUR CODE                          #
         #######################################################################
@@ -497,7 +508,7 @@ def dropout_forward(x, dropout_param):
         #######################################################################
         # TODO: Implement the test phase forward pass for inverted dropout.   #
         #######################################################################
-        pass
+        out = x
         #######################################################################
         #                            END OF YOUR CODE                         #
         #######################################################################
@@ -524,7 +535,7 @@ def dropout_backward(dout, cache):
         #######################################################################
         # TODO: Implement training phase backward pass for inverted dropout   #
         #######################################################################
-        pass
+        dx = dout * mask
         #######################################################################
         #                          END OF YOUR CODE                           #
         #######################################################################
@@ -562,11 +573,33 @@ def conv_forward_naive(x, w, b, conv_param):
     - cache: (x, w, b, conv_param)
     """
     out = None
+    
     ###########################################################################
     # TODO: Implement the convolutional forward pass.                         #
     # Hint: you can use the function np.pad for padding.                      #
     ###########################################################################
-    pass
+    stride, pad = conv_param['stride'], conv_param['pad']
+    pad_x = np.pad(x, [(0,0), (0,0), (pad, pad), (pad, pad)], 'constant')
+    N, C, H, W = x.shape
+    F, C, HH, WW = w.shape
+    H_out =  1 + (H +2 * pad - HH)/ stride
+    W_out =  1 + (W +2 * pad - WW)/ stride
+    out = np.zeros((N, F, H_out, W_out))
+    a=0
+    for n in range(N):
+        for f in range(F):
+            for h_out in range(H_out):
+                for w_out in range(W_out):
+                    if a < 3:
+                        a+=1
+                       # print(w[f,0])
+                       # print(w[f,1])
+                       # print(w[f,2])
+                        print('@@@@@@@@@@@@@@@@@@@@@@')
+                        print(pad_x[n, 0, h_out  * stride : h_out  * stride + HH, w_out * stride : w_out * stride + WW])
+                        print(pad_x[n, 1, h_out  * stride : h_out  * stride + HH, w_out * stride : w_out * stride + WW])
+                        print(pad_x[n, 2, h_out  * stride : h_out  * stride + HH, w_out * stride : w_out * stride + WW])
+                    out[n, f, h_out, w_out] = np.sum(w[f] * pad_x[n, :, h_out  * stride : h_out  * stride + HH, w_out * stride : w_out * stride + WW])
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
