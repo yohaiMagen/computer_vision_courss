@@ -582,24 +582,15 @@ def conv_forward_naive(x, w, b, conv_param):
     pad_x = np.pad(x, [(0,0), (0,0), (pad, pad), (pad, pad)], 'constant')
     N, C, H, W = x.shape
     F, C, HH, WW = w.shape
-    H_out =  1 + (H +2 * pad - HH)/ stride
-    W_out =  1 + (W +2 * pad - WW)/ stride
+    H_out =  1 + (H +2 * pad - HH)// stride
+    W_out =  1 + (W +2 * pad - WW)// stride
     out = np.zeros((N, F, H_out, W_out))
     a=0
     for n in range(N):
         for f in range(F):
             for h_out in range(H_out):
                 for w_out in range(W_out):
-                    if a < 3:
-                        a+=1
-                       # print(w[f,0])
-                       # print(w[f,1])
-                       # print(w[f,2])
-                        print('@@@@@@@@@@@@@@@@@@@@@@')
-                        print(pad_x[n, 0, h_out  * stride : h_out  * stride + HH, w_out * stride : w_out * stride + WW])
-                        print(pad_x[n, 1, h_out  * stride : h_out  * stride + HH, w_out * stride : w_out * stride + WW])
-                        print(pad_x[n, 2, h_out  * stride : h_out  * stride + HH, w_out * stride : w_out * stride + WW])
-                    out[n, f, h_out, w_out] = np.sum(w[f] * pad_x[n, :, h_out  * stride : h_out  * stride + HH, w_out * stride : w_out * stride + WW])
+                    out[n, f, h_out, w_out] = np.sum(w[f, :, :, :] * pad_x[n, :, h_out  * stride : h_out  * stride + HH, w_out * stride : w_out * stride + WW]) + b[f]
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -624,7 +615,36 @@ def conv_backward_naive(dout, cache):
     ###########################################################################
     # TODO: Implement the convolutional backward pass.                        #
     ###########################################################################
-    pass
+    x, w, b, conv_param = cache
+    stride, pad = conv_param['stride'], conv_param['pad']
+    N, C, H, W = x.shape
+    F, C, HH, WW = w.shape
+    H_out =  1 + (H +2 * pad - HH)// stride
+    W_out =  1 + (W +2 * pad - WW)// stride
+    #h_n = H + pad * 2 - HH + 1
+    #v = np.concatenate(([1],np.zeros(pad)))
+    #v = np.tile(v, (h_n - 1) // v.shape[0])
+    #v = np.concatenate((v, [1]))
+    #dx_lines = np.apply_along_axis(lambda m: np.convolve(m, v, mode='full'), axis=2, arr=w)
+    #dx_cols = np.apply_along_axis(lambda m: np.convolve(m, v, mode='full'), axis=3, arr=dx_lines)
+    #print('dx_lines shape:{}, dx_cols shape: {}'.format(dx_lines.shape, dx_cols.shape))
+    #dx = np.sum(dx_cols, axis=0)
+    #print('dx shape:{}, dout shape: {}'.format(dx.shape, dout.shape))
+    #dx = np.repeat(dx[np.newaxis, : , pad:-pad, pad:-pad], N, axis=0)
+    #print('dx shape:{}, dout shape: {}'.format(dx.shape, dout.shape))
+    #dw = 0
+    #db = 0
+    pad_x = np.pad(x, [(0,0), (0,0), (pad, pad), (pad, pad)], 'constant')
+    dx = np.zeros((C, H, W))
+    dw = np.zeros((F, C, HH, WW))
+    for n in range(N):
+        for f in range(F):
+            for hh in range(HH):
+                for ww in range(WW):
+                    #print('f:{}, hh:{}, ww:{}, h_out:{}, stride:{}, w_out:{}'.format(f, hh, ww, H_out, stride, W_out))
+                    #print(pad_x[n, :, hh * stride: hh * stride +  H_out, + ww * stride : ww * stride + W_out].shape)
+                    dw[f, :,  hh, ww] += np.sum(pad_x[n, :, hh * stride: hh * stride +  H_out, + ww * stride : ww * stride + W_out] * dout[n, f, :, :], axis=(1, 2) )
+    db = 0
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
